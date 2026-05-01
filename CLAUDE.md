@@ -18,11 +18,22 @@
 
 ```
 ow-custom-app/
-├── src/          # Next.js フロントエンド
-├── backend/      # Go APIサーバー
+├── src/                      # Next.js フロントエンド
+├── backend/                  # Go APIサーバー
+├── docs/
+│   ├── DB_DESIGN.md          # DB設計（テーブル定義・集計ビュー）
+│   └── API_DESIGN.md         # API設計（エンドポイント一覧）
 ├── CLAUDE.md
-└── SPEC.md       # 詳細仕様書
+├── SPEC.md                   # 詳細仕様書
+└── TASKS.md                  # 開発タスク・進捗管理
 ```
+
+## 設計ドキュメント
+
+- **仕様**: [SPEC.md](SPEC.md)
+- **DB設計**: [docs/DB_DESIGN.md](docs/DB_DESIGN.md)
+- **API設計**: [docs/API_DESIGN.md](docs/API_DESIGN.md)
+- **タスク管理**: [TASKS.md](TASKS.md)
 
 ## サーバー起動方法
 
