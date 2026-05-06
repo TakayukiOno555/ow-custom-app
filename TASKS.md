@@ -35,7 +35,8 @@
   - セッション: 「カスタムスタート/終了」ボタンで明示的に区切る
 
 ### Phase 2: 環境構築
-- [ ] Docker Compose で PostgreSQL 起動
+- [x] Docker Compose で PostgreSQL 起動（ホスト側 5433 → コンテナ 5432）
+- [x] DBマイグレーション基盤導入（`golang-migrate`）と初期スキーマ適用（11テーブル）
 - [ ] Go バックエンドの基本構成（ルーティング・DB接続）
 - [ ] Google OAuth 設定
 
