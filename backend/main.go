@@ -9,6 +9,7 @@ import (
 
 	"github.com/joho/godotenv"
 
+	"ow-custom-app/backend/config"
 	"ow-custom-app/backend/db"
 	"ow-custom-app/backend/handlers"
 )
@@ -31,12 +32,19 @@ func main() {
 	defer pool.Close()
 	log.Println("DB connected")
 
+	oauthCfg, err := config.GoogleOAuthConfig()
+	if err != nil {
+		log.Fatalf("OAuth config failed: %v", err)
+	}
+
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "ow-custom-app API server is running!")
 	})
 	mux.HandleFunc("GET /health", handlers.Health(pool))
+	mux.HandleFunc("GET /api/v1/auth/google/login", handlers.AuthGoogleLogin(oauthCfg))
+	mux.HandleFunc("GET /api/v1/auth/google/callback", handlers.AuthGoogleCallback(oauthCfg))
 
 	port := os.Getenv("PORT")
 	if port == "" {
