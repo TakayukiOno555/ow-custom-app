@@ -38,7 +38,8 @@
 - [x] Docker Compose で PostgreSQL 起動（ホスト側 5433 → コンテナ 5432）
 - [x] DBマイグレーション基盤導入（`golang-migrate`）と初期スキーマ適用（11テーブル）
 - [x] Go バックエンドの基本構成（ルーティング・DB接続）
-- [ ] Google OAuth 設定
+- [x] Google OAuth ログイン最小版（login/callback ハンドラ・userinfo 取得）
+- [x] users テーブル upsert + セッション発行（3D）／`/auth/me`・`/auth/logout` 実装
 
 ### Phase 3: バックエンド実装
 - [ ] プレイヤー管理 API

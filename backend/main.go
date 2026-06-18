@@ -44,7 +44,9 @@ func main() {
 	})
 	mux.HandleFunc("GET /health", handlers.Health(pool))
 	mux.HandleFunc("GET /api/v1/auth/google/login", handlers.AuthGoogleLogin(oauthCfg))
-	mux.HandleFunc("GET /api/v1/auth/google/callback", handlers.AuthGoogleCallback(oauthCfg))
+	mux.HandleFunc("GET /api/v1/auth/google/callback", handlers.AuthGoogleCallback(oauthCfg, pool))
+	mux.HandleFunc("GET /api/v1/auth/me", handlers.AuthMe(pool))
+	mux.HandleFunc("POST /api/v1/auth/logout", handlers.AuthLogout(pool))
 
 	port := os.Getenv("PORT")
 	if port == "" {

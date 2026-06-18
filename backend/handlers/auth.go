@@ -1,13 +1,12 @@
 package handlers
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/oauth2"
 )
 
@@ -19,7 +18,7 @@ const oauthStateCookieName = "oauth_state"
 // state をランダム生成して Cookie に保存してから Google に飛ばす。
 func AuthGoogleLogin(oauthCfg *oauth2.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		state, err := randomState()
+		state, err := randomToken()
 		if err != nil {
 			http.Error(w, "failed to generate state", http.StatusInternalServerError)
 			return
@@ -50,8 +49,8 @@ type googleUserInfo struct {
 }
 
 // AuthGoogleCallback は Google から戻ってきた code をトークンに交換し、
-// ユーザー情報を取得して JSON で返す（最小版。DB保存・セッション発行は次ステップ）。
-func AuthGoogleCallback(oauthCfg *oauth2.Config) http.HandlerFunc {
+// ユーザー情報を取得 → users へ upsert → ログインセッションを発行して Cookie に保存する。
+func AuthGoogleCallback(oauthCfg *oauth2.Config, pool *pgxpool.Pool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// 1) state 検証：Cookie の値と URL クエリの値が一致するか
 		cookie, err := r.Cookie(oauthStateCookieName)
@@ -105,17 +104,59 @@ func AuthGoogleCallback(oauthCfg *oauth2.Config) http.HandlerFunc {
 			return
 		}
 
-		// 4) 最小版：取れた情報をそのまま JSON で返す（次ステップで users テーブルへ upsert）
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(info)
+		// 4) users テーブルへ upsert（初回ログインなら作成、2回目以降は email/name 更新）
+		userID, err := upsertUser(r.Context(), pool, info)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to save user: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		// 5) ログインセッションを発行し、セッションIDを Cookie に保存
+		sessionID, expiresAt, err := createUserSession(r.Context(), pool, userID)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to create session: %v", err), http.StatusInternalServerError)
+			return
+		}
+		setSessionCookie(w, sessionID, expiresAt)
+
+		// 6) ログイン完了。フロントエンドのトップへ戻す。
+		http.Redirect(w, r, frontendURL(), http.StatusFound)
 	}
 }
 
-// randomState は URL セーフな 32 バイトのランダム文字列を生成する。
-func randomState() (string, error) {
-	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
+// AuthMe は現在ログイン中のユーザー情報を返す。未ログインなら 401。
+func AuthMe(pool *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, ok := userFromRequest(r.Context(), pool, r)
+		if !ok {
+			writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "ログインが必要です")
+			return
+		}
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(map[string]any{"data": user})
 	}
-	return base64.RawURLEncoding.EncodeToString(b), nil
+}
+
+// AuthLogout はセッションをサーバー・ブラウザ両方から消してログアウトする。
+// Cookie が無くても成功扱い（冪等）。
+func AuthLogout(pool *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if cookie, err := r.Cookie(sessionCookieName); err == nil && cookie.Value != "" {
+			if err := deleteUserSession(r.Context(), pool, cookie.Value); err != nil {
+				http.Error(w, fmt.Sprintf("failed to delete session: %v", err), http.StatusInternalServerError)
+				return
+			}
+		}
+		clearSessionCookie(w)
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+// writeError は API設計の `{ "error": { "code", "message" } }` 形式でエラーを返す。
+func writeError(w http.ResponseWriter, status int, code, message string) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"error": map[string]string{"code": code, "message": message},
+	})
 }
