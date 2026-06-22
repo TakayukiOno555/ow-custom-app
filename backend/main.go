@@ -45,8 +45,11 @@ func main() {
 	mux.HandleFunc("GET /health", handlers.Health(pool))
 	mux.HandleFunc("GET /api/v1/auth/google/login", handlers.AuthGoogleLogin(oauthCfg))
 	mux.HandleFunc("GET /api/v1/auth/google/callback", handlers.AuthGoogleCallback(oauthCfg, pool))
-	mux.HandleFunc("GET /api/v1/auth/me", handlers.AuthMe(pool))
+	mux.HandleFunc("GET /api/v1/auth/me", handlers.RequireAuth(pool, handlers.AuthMe()))
 	mux.HandleFunc("POST /api/v1/auth/logout", handlers.AuthLogout(pool))
+
+	// 組織（ログイン必須）
+	mux.HandleFunc("POST /api/v1/organizations", handlers.RequireAuth(pool, handlers.CreateOrganization(pool)))
 
 	port := os.Getenv("PORT")
 	if port == "" {

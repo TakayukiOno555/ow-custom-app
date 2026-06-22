@@ -124,14 +124,11 @@ func AuthGoogleCallback(oauthCfg *oauth2.Config, pool *pgxpool.Pool) http.Handle
 	}
 }
 
-// AuthMe は現在ログイン中のユーザー情報を返す。未ログインなら 401。
-func AuthMe(pool *pgxpool.Pool) http.HandlerFunc {
+// AuthMe は現在ログイン中のユーザー情報を返す。
+// ログイン必須チェックは RequireAuth ミドルウェアが行うので、ここは context から取り出すだけ。
+func AuthMe() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user, ok := userFromRequest(r.Context(), pool, r)
-		if !ok {
-			writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "ログインが必要です")
-			return
-		}
+		user, _ := UserFromContext(r.Context())
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(map[string]any{"data": user})
 	}

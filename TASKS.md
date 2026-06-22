@@ -42,6 +42,9 @@
 - [x] users テーブル upsert + セッション発行（3D）／`/auth/me`・`/auth/logout` 実装
 
 ### Phase 3: バックエンド実装
+- [x] セッション検証ミドルウェア（`RequireAuth`）＋ `/auth/me` をミドルウェア経由に
+- [x] 組織作成 API（`POST /organizations`／作成者を admin として所属）
+- [ ] 組織 API 残り（一覧・取得・表示モード切替）
 - [ ] プレイヤー管理 API
 - [ ] チーム分け API
 - [ ] 試合記録 API
