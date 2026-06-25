@@ -44,7 +44,7 @@
 ### Phase 3: バックエンド実装
 - [x] セッション検証ミドルウェア（`RequireAuth`）＋ `/auth/me` をミドルウェア経由に
 - [x] 組織作成 API（`POST /organizations`／作成者を admin として所属）
-- [ ] 組織 API 残り（一覧・取得・表示モード切替）
+- [x] 組織 API 残り（一覧 `GET /organizations`・取得 `GET /organizations/:id`・表示モード切替 `PUT .../level-display`）＋ member/admin 権限チェック（`orgRole` ヘルパー）
 - [ ] プレイヤー管理 API
 - [ ] チーム分け API
 - [ ] 試合記録 API

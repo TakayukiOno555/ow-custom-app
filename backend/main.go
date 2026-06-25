@@ -48,8 +48,11 @@ func main() {
 	mux.HandleFunc("GET /api/v1/auth/me", handlers.RequireAuth(pool, handlers.AuthMe()))
 	mux.HandleFunc("POST /api/v1/auth/logout", handlers.AuthLogout(pool))
 
-	// 組織（ログイン必須）
+	// 組織（ログイン必須。member/admin の権限は各ハンドラ内で判定）
 	mux.HandleFunc("POST /api/v1/organizations", handlers.RequireAuth(pool, handlers.CreateOrganization(pool)))
+	mux.HandleFunc("GET /api/v1/organizations", handlers.RequireAuth(pool, handlers.ListOrganizations(pool)))
+	mux.HandleFunc("GET /api/v1/organizations/{id}", handlers.RequireAuth(pool, handlers.GetOrganization(pool)))
+	mux.HandleFunc("PUT /api/v1/organizations/{id}/level-display", handlers.RequireAuth(pool, handlers.UpdateLevelDisplay(pool)))
 
 	port := os.Getenv("PORT")
 	if port == "" {
