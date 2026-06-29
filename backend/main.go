@@ -54,6 +54,12 @@ func main() {
 	mux.HandleFunc("GET /api/v1/organizations/{id}", handlers.RequireAuth(pool, handlers.GetOrganization(pool)))
 	mux.HandleFunc("PUT /api/v1/organizations/{id}/level-display", handlers.RequireAuth(pool, handlers.UpdateLevelDisplay(pool)))
 
+	// プレイヤー（ログイン必須。member/admin の権限は各ハンドラ内で判定）
+	mux.HandleFunc("GET /api/v1/organizations/{orgId}/players", handlers.RequireAuth(pool, handlers.ListPlayers(pool)))
+	mux.HandleFunc("POST /api/v1/organizations/{orgId}/players", handlers.RequireAuth(pool, handlers.CreatePlayer(pool)))
+	mux.HandleFunc("PUT /api/v1/players/{id}", handlers.RequireAuth(pool, handlers.UpdatePlayer(pool)))
+	mux.HandleFunc("DELETE /api/v1/players/{id}", handlers.RequireAuth(pool, handlers.DeletePlayer(pool)))
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
