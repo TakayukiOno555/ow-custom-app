@@ -60,6 +60,11 @@ func main() {
 	mux.HandleFunc("PUT /api/v1/players/{id}", handlers.RequireAuth(pool, handlers.UpdatePlayer(pool)))
 	mux.HandleFunc("DELETE /api/v1/players/{id}", handlers.RequireAuth(pool, handlers.DeletePlayer(pool)))
 
+	// マップ（ログイン必須。member/admin の権限は各ハンドラ内で判定）
+	mux.HandleFunc("GET /api/v1/organizations/{orgId}/maps", handlers.RequireAuth(pool, handlers.ListMaps(pool)))
+	mux.HandleFunc("POST /api/v1/organizations/{orgId}/maps", handlers.RequireAuth(pool, handlers.CreateMap(pool)))
+	mux.HandleFunc("DELETE /api/v1/maps/{id}", handlers.RequireAuth(pool, handlers.DeleteMap(pool)))
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

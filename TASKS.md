@@ -46,9 +46,9 @@
 - [x] 組織作成 API（`POST /organizations`／作成者を admin として所属）
 - [x] 組織 API 残り（一覧 `GET /organizations`・取得 `GET /organizations/:id`・表示モード切替 `PUT .../level-display`）＋ member/admin 権限チェック（`orgRole` ヘルパー）
 - [x] プレイヤー管理 API（一覧=member/追加=admin/変更=admin+level_changes履歴/削除=admin、18人上限、`player_stats` ビュー追加）
+- [x] マップ管理 API（一覧=member/追加=admin/削除=admin、`mapOrgID` ヘルパー）
 - [ ] チーム分け API
 - [ ] 試合記録 API
-- [ ] マップ管理 API
 - [ ] レベル管理 API（手動変更・自動調整提案・アンドゥ）
 - [ ] 共有コード API
 - [ ] **セッション「カスタム終了」のアンドゥ API**
