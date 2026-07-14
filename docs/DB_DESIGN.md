@@ -74,6 +74,7 @@ users ──┬── organizations ──┬── players
 | id | UUID PK | |
 | organization_id | UUID NOT NULL FK→organizations(id) | |
 | name | TEXT NOT NULL | 例: "Hanamura - Assault" |
+| include_in_random | BOOLEAN NOT NULL DEFAULT true | ランダム抽選の母集団に含めるか（永続フラグ） |
 | created_at | TIMESTAMPTZ NOT NULL DEFAULT now() | |
 
 ### sessions
@@ -90,14 +91,8 @@ users ──┬── organizations ──┬── players
 
 > 仮定: セッションは管理者が明示的に「開始 / 終了」する。
 
-### session_maps
-そのセッションで使うマップ（プレイ前に複数選択）。
-
-| カラム | 型 | 説明 |
-|--------|----|----|
-| session_id | UUID FK→sessions(id) | |
-| map_id | UUID FK→maps(id) | |
-| PK | (session_id, map_id) | |
+> ~~session_maps（セッションごとのマップ都度選択）は廃止~~（migration 000006）。
+> 「使うマップ」は `maps.include_in_random`（永続フラグ）で管理する方式に一本化した。
 
 ### matches
 試合。

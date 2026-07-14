@@ -60,16 +60,18 @@
 
 | メソッド | パス | 権限 | 説明 |
 |---------|------|------|------|
-| GET | `/organizations/:orgId/maps` | member | マップ一覧 |
-| POST | `/organizations/:orgId/maps` | admin | マップ追加 |
+| GET | `/organizations/:orgId/maps` | member | マップ一覧（`include_in_random` 含む） |
+| POST | `/organizations/:orgId/maps` | admin | マップ追加（`include_in_random` 任意・既定true） |
+| PUT | `/maps/:id` | admin | 名前・`include_in_random` の変更（部分更新可） |
 | DELETE | `/maps/:id` | admin | マップ削除 |
+
+`include_in_random` = ランダム抽選の母集団に含めるかの永続フラグ。ランダムモードはこのフラグONのマップから抽選する。直接指定は任意マップ可。
 
 ### セッション
 
 | メソッド | パス | 権限 | 説明 |
 |---------|------|------|------|
 | POST | `/organizations/:orgId/sessions` | admin | セッション開始（team_size, map_selection_mode指定） |
-| POST | `/sessions/:id/maps` | admin | 使用するマップを選択（IDの配列） |
 | POST | `/sessions/:id/end` | admin | セッション終了 |
 | GET | `/sessions/:id` | member | セッション情報 |
 | GET | `/sessions/:id/summary` | member | 結果サマリー |

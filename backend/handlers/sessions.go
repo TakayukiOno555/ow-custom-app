@@ -118,7 +118,7 @@ func CreateSession(pool *pgxpool.Pool) http.HandlerFunc {
 	}
 }
 
-// GetSession はセッション情報を、選択済みマップ付きで返す。member 必須。
+// GetSession はセッション情報を返す。member 必須。
 func GetSession(pool *pgxpool.Pool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user, _ := UserFromContext(r.Context())
@@ -157,111 +157,8 @@ func GetSession(pool *pgxpool.Pool) http.HandlerFunc {
 			return
 		}
 
-		maps, err := sessionMaps(r, pool, sessionID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "INTERNAL", "セッションマップの取得に失敗しました")
-			return
-		}
-
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"data": map[string]any{"session": s, "maps": maps},
-		})
-	}
-}
-
-// SetSessionMaps はそのセッションで使うマップを設定する（渡したIDの配列で置き換え）。admin 必須。
-// 終了済みセッションは変更不可。渡すマップは全て同じ組織のものであること。
-func SetSessionMaps(pool *pgxpool.Pool) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		user, _ := UserFromContext(r.Context())
-		sessionID := r.PathValue("id")
-		if !uuidPattern.MatchString(sessionID) {
-			writeError(w, http.StatusNotFound, "NOT_FOUND", "セッションが見つかりません")
-			return
-		}
-
-		orgID, ended, ok, err := sessionOrgID(r, pool, sessionID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "INTERNAL", "セッションの確認に失敗しました")
-			return
-		}
-		if !ok {
-			writeError(w, http.StatusNotFound, "NOT_FOUND", "セッションが見つかりません")
-			return
-		}
-		role, isMember, err := orgRole(r, pool, orgID, user.ID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "INTERNAL", "権限の確認に失敗しました")
-			return
-		}
-		if !isMember || role != "admin" {
-			writeError(w, http.StatusForbidden, "FORBIDDEN", "管理者権限が必要です")
-			return
-		}
-		if ended {
-			writeError(w, http.StatusConflict, "CONFLICT", "終了したセッションは変更できません")
-			return
-		}
-
-		var body struct {
-			MapIDs []string `json:"map_ids"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "リクエストの形式が不正です")
-			return
-		}
-		if len(body.MapIDs) == 0 {
-			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "マップを1つ以上選択してください")
-			return
-		}
-		// 重複を除去
-		mapIDs := dedupStrings(body.MapIDs)
-
-		// 渡された全マップがこの組織のものか確認（件数が一致すればOK）
-		var validCount int
-		if err := pool.QueryRow(r.Context(),
-			`SELECT COUNT(*) FROM maps WHERE organization_id = $1 AND id = ANY($2)`, orgID, mapIDs).
-			Scan(&validCount); err != nil {
-			writeError(w, http.StatusInternalServerError, "INTERNAL", "マップの確認に失敗しました")
-			return
-		}
-		if validCount != len(mapIDs) {
-			writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "この組織に存在しないマップが含まれています")
-			return
-		}
-
-		// 既存の選択を消してから入れ直す（＝渡した配列で置き換え）
-		tx, err := pool.Begin(r.Context())
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "INTERNAL", "処理を開始できませんでした")
-			return
-		}
-		defer tx.Rollback(r.Context())
-
-		if _, err := tx.Exec(r.Context(), `DELETE FROM session_maps WHERE session_id = $1`, sessionID); err != nil {
-			writeError(w, http.StatusInternalServerError, "INTERNAL", "既存マップの削除に失敗しました")
-			return
-		}
-		for _, mid := range mapIDs {
-			if _, err := tx.Exec(r.Context(),
-				`INSERT INTO session_maps (session_id, map_id) VALUES ($1, $2)`, sessionID, mid); err != nil {
-				writeError(w, http.StatusInternalServerError, "INTERNAL", "マップの登録に失敗しました")
-				return
-			}
-		}
-		if err := tx.Commit(r.Context()); err != nil {
-			writeError(w, http.StatusInternalServerError, "INTERNAL", "処理の確定に失敗しました")
-			return
-		}
-
-		maps, err := sessionMaps(r, pool, sessionID)
-		if err != nil {
-			writeError(w, http.StatusInternalServerError, "INTERNAL", "セッションマップの取得に失敗しました")
-			return
-		}
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		_ = json.NewEncoder(w).Encode(map[string]any{"data": maps})
+		_ = json.NewEncoder(w).Encode(map[string]any{"data": s})
 	}
 }
 
@@ -313,31 +210,6 @@ func EndSession(pool *pgxpool.Pool) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		_ = json.NewEncoder(w).Encode(map[string]any{"data": s})
 	}
-}
-
-// sessionMaps はそのセッションで選択されているマップ一覧を返す。
-func sessionMaps(r *http.Request, pool *pgxpool.Pool, sessionID string) ([]gameMap, error) {
-	const q = `
-		SELECT m.id, m.name, m.created_at
-		FROM session_maps sm
-		JOIN maps m ON m.id = sm.map_id
-		WHERE sm.session_id = $1
-		ORDER BY m.created_at`
-	rows, err := pool.Query(r.Context(), q, sessionID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	maps := []gameMap{}
-	for rows.Next() {
-		var m gameMap
-		if err := rows.Scan(&m.ID, &m.Name, &m.CreatedAt); err != nil {
-			return nil, err
-		}
-		maps = append(maps, m)
-	}
-	return maps, rows.Err()
 }
 
 // dedupStrings はスライスから重複を除いた新しいスライスを返す（順序は保つ）。

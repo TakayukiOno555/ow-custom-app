@@ -47,6 +47,8 @@
 - [x] 組織 API 残り（一覧 `GET /organizations`・取得 `GET /organizations/:id`・表示モード切替 `PUT .../level-display`）＋ member/admin 権限チェック（`orgRole` ヘルパー）
 - [x] プレイヤー管理 API（一覧=member/追加=admin/変更=admin+level_changes履歴/削除=admin、18人上限、`player_stats` ビュー追加）
 - [x] マップ管理 API（一覧=member/追加=admin/削除=admin、`mapOrgID` ヘルパー）
+- [x] マップ「ランダム対象フラグ」(`include_in_random`) 導入＋`PUT /maps/:id`（部分更新）／セッション別マップ選択(session_maps)を廃止して永続フラグに一本化（migration 000005/000006）
+  - フォロー: ランダム抽選の実処理・ランダム/選択モード切替（フロント）、全マップ一括リセットAPI、`map_selection_mode` enum見直し
 - [x] セッション API（開始=admin/進行中1つ制限・マップ選択=admin/取得=member/終了=admin、`sessionOrgID` ヘルパー）※summary・level-suggestion・apply は未実装
 - [x] 試合記録 API（開始=admin/勝敗記録=admin/キャンセル=admin、`player_stats` へ実データ反映を確認、`matchInfo`/`matchTeams` ヘルパー）
   - ついでに `matches.map_id` FK を ON DELETE SET NULL に修正（使用中マップの削除が500になる問題、migration 000004）
