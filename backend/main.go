@@ -71,6 +71,11 @@ func main() {
 	mux.HandleFunc("POST /api/v1/sessions/{id}/maps", handlers.RequireAuth(pool, handlers.SetSessionMaps(pool)))
 	mux.HandleFunc("POST /api/v1/sessions/{id}/end", handlers.RequireAuth(pool, handlers.EndSession(pool)))
 
+	// 試合（ログイン必須。member/admin の権限は各ハンドラ内で判定）
+	mux.HandleFunc("POST /api/v1/sessions/{id}/matches", handlers.RequireAuth(pool, handlers.CreateMatch(pool)))
+	mux.HandleFunc("POST /api/v1/matches/{id}/result", handlers.RequireAuth(pool, handlers.SetMatchResult(pool)))
+	mux.HandleFunc("DELETE /api/v1/matches/{id}", handlers.RequireAuth(pool, handlers.CancelMatch(pool)))
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
