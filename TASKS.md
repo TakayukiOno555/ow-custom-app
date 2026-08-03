@@ -53,7 +53,8 @@
 - [x] 試合記録 API（開始=admin/勝敗記録=admin/キャンセル=admin、`player_stats` へ実データ反映を確認、`matchInfo`/`matchTeams` ヘルパー）
   - ついでに `matches.map_id` FK を ON DELETE SET NULL に修正（使用中マップの削除が500になる問題、migration 000004）
 - [x] チーム分け API（`POST /sessions/:id/teams/auto`、admin。レベル均等の貪欲振り分け＋観戦数の少ない人から観戦へ。提案を返すのみ・DB保存なし、`teams.go`）
-- [ ] レベル管理 API（手動変更・自動調整提案・アンドゥ）
+- [x] レベル自動調整 API（`GET /sessions/:id/level-suggestion` 提案・`POST /sessions/:id/apply-level-changes` 適用、admin。勝率で±2クランプ、二重適用は409、`levels.go`）※手動変更は PUT /players/:id で実装済み。履歴一覧・アンドゥは残り
+- [ ] レベル変更履歴一覧・アンドゥ API（`GET /organizations/:orgId/level-changes`・`POST /level-changes/:id/undo`）
 - [ ] 共有コード API
 - [ ] **セッション「カスタム終了」のアンドゥ API**
   - 誤って「カスタム終了」を押した場合、セッションを再開できるようにする

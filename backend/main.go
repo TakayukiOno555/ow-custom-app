@@ -74,6 +74,10 @@ func main() {
 	// チーム分け（ログイン必須。admin 判定はハンドラ内）
 	mux.HandleFunc("POST /api/v1/sessions/{id}/teams/auto", handlers.RequireAuth(pool, handlers.AutoAssignTeams(pool)))
 
+	// レベル自動調整（ログイン必須。admin 判定はハンドラ内）
+	mux.HandleFunc("GET /api/v1/sessions/{id}/level-suggestion", handlers.RequireAuth(pool, handlers.GetLevelSuggestion(pool)))
+	mux.HandleFunc("POST /api/v1/sessions/{id}/apply-level-changes", handlers.RequireAuth(pool, handlers.ApplyLevelChanges(pool)))
+
 	// 試合（ログイン必須。member/admin の権限は各ハンドラ内で判定）
 	mux.HandleFunc("POST /api/v1/sessions/{id}/matches", handlers.RequireAuth(pool, handlers.CreateMatch(pool)))
 	mux.HandleFunc("POST /api/v1/matches/{id}/result", handlers.RequireAuth(pool, handlers.SetMatchResult(pool)))
