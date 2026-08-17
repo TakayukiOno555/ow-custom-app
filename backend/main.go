@@ -69,6 +69,7 @@ func main() {
 	// セッション（ログイン必須。member/admin の権限は各ハンドラ内で判定）
 	mux.HandleFunc("POST /api/v1/organizations/{orgId}/sessions", handlers.RequireAuth(pool, handlers.CreateSession(pool)))
 	mux.HandleFunc("GET /api/v1/sessions/{id}", handlers.RequireAuth(pool, handlers.GetSession(pool)))
+	mux.HandleFunc("GET /api/v1/sessions/{id}/summary", handlers.RequireAuth(pool, handlers.GetSessionSummary(pool)))
 	mux.HandleFunc("POST /api/v1/sessions/{id}/end", handlers.RequireAuth(pool, handlers.EndSession(pool)))
 
 	// チーム分け（ログイン必須。admin 判定はハンドラ内）

@@ -74,9 +74,23 @@
 | POST | `/organizations/:orgId/sessions` | admin | セッション開始（team_size, map_selection_mode指定） |
 | POST | `/sessions/:id/end` | admin | セッション終了 |
 | GET | `/sessions/:id` | member | セッション情報 |
-| GET | `/sessions/:id/summary` | member | 結果サマリー |
+| GET | `/sessions/:id/summary` | member | 結果サマリー（セッション情報＋完了試合数＋各参加者のそのセッション成績） |
 | GET | `/sessions/:id/level-suggestion` | admin | レベル自動調整提案を取得 |
 | POST | `/sessions/:id/apply-level-changes` | admin | 提案を適用 |
+
+レスポンス例 (`GET /sessions/:id/summary`):
+```json
+{
+  "data": {
+    "session": { "id": "...", "started_at": "...", "ended_at": null, "team_size": 5, "map_selection_mode": "rotation" },
+    "total_matches": 2,
+    "players": [
+      { "player_id": "...", "name": "...", "match_count": 2, "win_count": 1, "win_rate": 0.5, "spectator_count": 0 }
+    ]
+  }
+}
+```
+> 完了(`completed`)試合のみ集計。キャンセル試合は除外。レベルは含めない（表示モード hidden の考慮は統計APIで扱う）。
 
 レスポンス例 (`GET /sessions/:id/level-suggestion`):
 ```json
