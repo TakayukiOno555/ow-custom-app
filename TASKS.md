@@ -56,7 +56,7 @@
 - [x] チーム分け API（`POST /sessions/:id/teams/auto`、admin。レベル均等の貪欲振り分け＋観戦数の少ない人から観戦へ。提案を返すのみ・DB保存なし、`teams.go`）
 - [x] レベル自動調整 API（`GET /sessions/:id/level-suggestion` 提案・`POST /sessions/:id/apply-level-changes` 適用、admin。勝率で±2クランプ、二重適用は409、`levels.go`）※手動変更は PUT /players/:id で実装済み。履歴一覧・アンドゥは残り
 - [ ] レベル変更履歴一覧・アンドゥ API（`GET /organizations/:orgId/level-changes`・`POST /level-changes/:id/undo`）
-- [ ] 共有コード API
+- [x] 共有コード API（発行=admin/4桁英数字・7日失効・衝突再生成、インポート=認証済/新org作成＋players・maps複製(include_in_random含む)・期限切れ404、`sharecodes.go`）
 - [ ] **セッション「カスタム終了」のアンドゥ API**
   - 誤って「カスタム終了」を押した場合、セッションを再開できるようにする
   - `ended_at` を NULL に戻す

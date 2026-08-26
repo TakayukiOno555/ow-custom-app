@@ -79,6 +79,10 @@ func main() {
 	mux.HandleFunc("GET /api/v1/sessions/{id}/level-suggestion", handlers.RequireAuth(pool, handlers.GetLevelSuggestion(pool)))
 	mux.HandleFunc("POST /api/v1/sessions/{id}/apply-level-changes", handlers.RequireAuth(pool, handlers.ApplyLevelChanges(pool)))
 
+	// 共有コード（発行=admin、インポート=認証済。判定はハンドラ内）
+	mux.HandleFunc("POST /api/v1/organizations/{orgId}/share-codes", handlers.RequireAuth(pool, handlers.CreateShareCode(pool)))
+	mux.HandleFunc("POST /api/v1/share-codes/import", handlers.RequireAuth(pool, handlers.ImportShareCode(pool)))
+
 	// 試合（ログイン必須。member/admin の権限は各ハンドラ内で判定）
 	mux.HandleFunc("POST /api/v1/sessions/{id}/matches", handlers.RequireAuth(pool, handlers.CreateMatch(pool)))
 	mux.HandleFunc("POST /api/v1/matches/{id}/result", handlers.RequireAuth(pool, handlers.SetMatchResult(pool)))
