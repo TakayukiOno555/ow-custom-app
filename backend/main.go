@@ -71,6 +71,7 @@ func main() {
 	mux.HandleFunc("GET /api/v1/sessions/{id}", handlers.RequireAuth(pool, handlers.GetSession(pool)))
 	mux.HandleFunc("GET /api/v1/sessions/{id}/summary", handlers.RequireAuth(pool, handlers.GetSessionSummary(pool)))
 	mux.HandleFunc("POST /api/v1/sessions/{id}/end", handlers.RequireAuth(pool, handlers.EndSession(pool)))
+	mux.HandleFunc("POST /api/v1/sessions/{id}/reopen", handlers.RequireAuth(pool, handlers.ReopenSession(pool)))
 
 	// チーム分け（ログイン必須。admin 判定はハンドラ内）
 	mux.HandleFunc("POST /api/v1/sessions/{id}/teams/auto", handlers.RequireAuth(pool, handlers.AutoAssignTeams(pool)))
@@ -78,6 +79,10 @@ func main() {
 	// レベル自動調整（ログイン必須。admin 判定はハンドラ内）
 	mux.HandleFunc("GET /api/v1/sessions/{id}/level-suggestion", handlers.RequireAuth(pool, handlers.GetLevelSuggestion(pool)))
 	mux.HandleFunc("POST /api/v1/sessions/{id}/apply-level-changes", handlers.RequireAuth(pool, handlers.ApplyLevelChanges(pool)))
+
+	// レベル変更履歴・アンドゥ（admin。判定はハンドラ内）
+	mux.HandleFunc("GET /api/v1/organizations/{orgId}/level-changes", handlers.RequireAuth(pool, handlers.ListLevelChanges(pool)))
+	mux.HandleFunc("POST /api/v1/level-changes/{id}/undo", handlers.RequireAuth(pool, handlers.UndoLevelChange(pool)))
 
 	// 共有コード（発行=admin、インポート=認証済。判定はハンドラ内）
 	mux.HandleFunc("POST /api/v1/organizations/{orgId}/share-codes", handlers.RequireAuth(pool, handlers.CreateShareCode(pool)))

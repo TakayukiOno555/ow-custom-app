@@ -73,6 +73,7 @@
 |---------|------|------|------|
 | POST | `/organizations/:orgId/sessions` | admin | セッション開始（team_size, map_selection_mode指定） |
 | POST | `/sessions/:id/end` | admin | セッション終了 |
+| POST | `/sessions/:id/reopen` | admin | 誤終了の再開（ended_at→NULL＋適用済みautoレベル調整を巻き戻し） |
 | GET | `/sessions/:id` | member | セッション情報 |
 | GET | `/sessions/:id/summary` | member | 結果サマリー（セッション情報＋完了試合数＋各参加者のそのセッション成績） |
 | GET | `/sessions/:id/level-suggestion` | admin | レベル自動調整提案を取得 |

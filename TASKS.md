@@ -55,12 +55,14 @@
   - ついでに `matches.map_id` FK を ON DELETE SET NULL に修正（使用中マップの削除が500になる問題、migration 000004）
 - [x] チーム分け API（`POST /sessions/:id/teams/auto`、admin。レベル均等の貪欲振り分け＋観戦数の少ない人から観戦へ。提案を返すのみ・DB保存なし、`teams.go`）
 - [x] レベル自動調整 API（`GET /sessions/:id/level-suggestion` 提案・`POST /sessions/:id/apply-level-changes` 適用、admin。勝率で±2クランプ、二重適用は409、`levels.go`）※手動変更は PUT /players/:id で実装済み。履歴一覧・アンドゥは残り
-- [ ] レベル変更履歴一覧・アンドゥ API（`GET /organizations/:orgId/level-changes`・`POST /level-changes/:id/undo`）
+- [x] レベル変更履歴一覧・アンドゥ API（`GET /organizations/:orgId/level-changes` 一覧・`POST /level-changes/:id/undo` 取消、admin。新しいものから取消・二重取消409、`levelchanges.go`）
 - [x] 共有コード API（発行=admin/4桁英数字・7日失効・衝突再生成、インポート=認証済/新org作成＋players・maps複製(include_in_random含む)・期限切れ404、`sharecodes.go`）
-- [ ] **セッション「カスタム終了」のアンドゥ API**
-  - 誤って「カスタム終了」を押した場合、セッションを再開できるようにする
-  - `ended_at` を NULL に戻す
-  - レベル調整がすでに適用されていた場合は併せてロールバック
+- [x] **セッション「カスタム終了」のアンドゥ API**（`POST /sessions/:id/reopen`、admin）
+  - `ended_at` を NULL に戻して再開（`sessions.go` ReopenSession）
+  - 適用済み auto レベル調整（未取消）を players に巻き戻して reverted_at セット
+  - 未終了は409、別に進行中セッションがあれば409
+
+> Phase 3 バックエンドAPI 完了。次は Phase 4 フロントエンド。
 
 ### Phase 4: フロントエンド実装
 - [ ] 認証画面（Google OAuth）

@@ -212,6 +212,99 @@ func EndSession(pool *pgxpool.Pool) http.HandlerFunc {
 	}
 }
 
+// ReopenSession は誤って終了したセッションを再開する（ended_at を NULL に戻す）。admin 必須。
+// 終了時に適用済みのレベル自動調整（このセッションの未取消 auto 履歴）も併せて巻き戻す（方針B）。
+// - 終了していないセッション → 409
+// - 同じ組織に別の進行中セッションがある → 409（進行中は1組織1つまで）
+func ReopenSession(pool *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, _ := UserFromContext(r.Context())
+		sessionID := r.PathValue("id")
+		if !uuidPattern.MatchString(sessionID) {
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "セッションが見つかりません")
+			return
+		}
+
+		orgID, ended, ok, err := sessionOrgID(r, pool, sessionID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL", "セッションの確認に失敗しました")
+			return
+		}
+		if !ok {
+			writeError(w, http.StatusNotFound, "NOT_FOUND", "セッションが見つかりません")
+			return
+		}
+		role, isMember, err := orgRole(r, pool, orgID, user.ID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL", "権限の確認に失敗しました")
+			return
+		}
+		if !isMember || role != "admin" {
+			writeError(w, http.StatusForbidden, "FORBIDDEN", "管理者権限が必要です")
+			return
+		}
+		if !ended {
+			writeError(w, http.StatusConflict, "CONFLICT", "このセッションは終了していません")
+			return
+		}
+
+		// 同じ組織に別の進行中セッションがあれば再開できない
+		var active bool
+		if err := pool.QueryRow(r.Context(),
+			`SELECT EXISTS(SELECT 1 FROM sessions WHERE organization_id = $1 AND ended_at IS NULL)`, orgID).
+			Scan(&active); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL", "セッション状態の確認に失敗しました")
+			return
+		}
+		if active {
+			writeError(w, http.StatusConflict, "CONFLICT", "他に進行中のセッションがあるため再開できません")
+			return
+		}
+
+		tx, err := pool.Begin(r.Context())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL", "処理を開始できませんでした")
+			return
+		}
+		defer tx.Rollback(r.Context())
+
+		// このセッションで適用済み（未取消）の auto レベル調整を players に巻き戻す
+		if _, err := tx.Exec(r.Context(),
+			`UPDATE players p
+			 SET level = lc.old_level, updated_at = now()
+			 FROM level_changes lc
+			 WHERE lc.player_id = p.id
+			   AND lc.session_id = $1 AND lc.change_type = 'auto' AND lc.reverted_at IS NULL`, sessionID); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL", "レベル調整の巻き戻しに失敗しました")
+			return
+		}
+		// 巻き戻した履歴に reverted_at を立てる
+		if _, err := tx.Exec(r.Context(),
+			`UPDATE level_changes SET reverted_at = now()
+			 WHERE session_id = $1 AND change_type = 'auto' AND reverted_at IS NULL`, sessionID); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL", "レベル履歴の更新に失敗しました")
+			return
+		}
+		// セッションを再開（ended_at を NULL に）
+		var s session
+		if err := tx.QueryRow(r.Context(),
+			`UPDATE sessions SET ended_at = NULL WHERE id = $1
+			 RETURNING id, organization_id, started_at, ended_at, team_size, map_selection_mode`, sessionID).
+			Scan(&s.ID, &s.OrganizationID, &s.StartedAt, &s.EndedAt, &s.TeamSize, &s.MapSelectionMode); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL", "セッションの再開に失敗しました")
+			return
+		}
+
+		if err := tx.Commit(r.Context()); err != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL", "処理の確定に失敗しました")
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		_ = json.NewEncoder(w).Encode(map[string]any{"data": s})
+	}
+}
+
 // dedupStrings はスライスから重複を除いた新しいスライスを返す（順序は保つ）。
 func dedupStrings(in []string) []string {
 	seen := make(map[string]struct{}, len(in))
